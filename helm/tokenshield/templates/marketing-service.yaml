@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tokenshield.fullname" . }}-marketing
+  labels:
+    app.kubernetes.io/name: marketing
+spec:
+  type: {{ .Values.marketing.service.type }}
+  ports:
+    - port: {{ .Values.marketing.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: marketing

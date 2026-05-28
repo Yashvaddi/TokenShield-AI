@@ -1,0 +1,215 @@
+# ==============================================================
+# TokenShield — .gitignore
+# ==============================================================
+
+# ---------------------------------------------------------------
+# Environment & Secrets
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+infra/secrets/
+
+# ---------------------------------------------------------------
+# Python / Backend
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+pytest.ini
+*.cover
+
+# MyPy / type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# ---------------------------------------------------------------
+# Node.js / Frontend
+# ---------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.pnp
+.pnp.*
+
+# Next.js
+.next/
+out/
+/build
+next-env.d.ts
+
+# TypeScript
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Coverage
+coverage/
+
+# ---------------------------------------------------------------
+# Docker & Container Artifacts
+# ---------------------------------------------------------------
+*.tar
+*.tar.gz
+docker-compose.override.yml
+infra/docker-compose.yml.bak
+
+# ---------------------------------------------------------------
+# Kubernetes / Helm
+# ---------------------------------------------------------------
+*.lock
+charts/*.tgz
+helm/charts/*.tgz
+*.rendered.yaml
+
+# ---------------------------------------------------------------
+# Terraform / Infrastructure
+# ---------------------------------------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ---------------------------------------------------------------
+# Databases & Migrations
+# ---------------------------------------------------------------
+*.sqlite
+*.db
+*.db-journal
+*.sqlite3
+alembic/versions/*.pyc
+
+# ---------------------------------------------------------------
+# Logs & Temporary Files
+# ---------------------------------------------------------------
+*.log
+*.out
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+tmp/
+temp/
+logs/
+
+# ---------------------------------------------------------------
+# OS & Editor Artifacts
+# ---------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains / PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# ---------------------------------------------------------------
+# Monitoring & Observability (local config)
+# ---------------------------------------------------------------
+infra/monitoring/grafana/data/
+infra/monitoring/prometheus/data/
+
+# ---------------------------------------------------------------
+# Misc Build / CI Artifacts
+# ---------------------------------------------------------------
+dist/
+*.min.js.map
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+storybook-static/

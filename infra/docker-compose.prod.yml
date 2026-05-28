@@ -1,0 +1,216 @@
+version: '3.9'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - public_net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: tokenshield
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tokenshield"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    volumes:
+      - chdata:/var/lib/clickhouse
+    networks:
+      - db_net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  backend:
+    image: ${REGISTRY:-ghcr.io/yourusername}/tokenshield-backend:latest
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${DB_PASS:?DB_PASS is required}@postgres/tokenshield
+      REDIS_URL: redis://redis:6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ALGORITHM: RS256
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - public_net
+      - backend_net
+      - db_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=HostRegexp(`api.{domain:.*}`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  celery:
+    image: ${REGISTRY:-ghcr.io/yourusername}/tokenshield-backend:latest
+    command: celery -A app.worker worker -c 4 -Q alerts,detection
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${DB_PASS:?DB_PASS is required}@postgres/tokenshield
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend_net
+      - db_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  frontend:
+    image: ${REGISTRY:-ghcr.io/yourusername}/tokenshield-frontend:latest
+    environment:
+      NEXT_PUBLIC_API_URL: '${NEXT_PUBLIC_API_URL:-http://backend:8000}'
+      BACKEND_URL: '${BACKEND_URL:-http://backend:8000}'
+    networks:
+      - public_net
+      - backend_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=HostRegexp(`app.{domain:.*}`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  marketing:
+    image: ${REGISTRY:-ghcr.io/yourusername}/tokenshield-marketing:latest
+    environment:
+      NEXT_PUBLIC_API_URL: '${NEXT_PUBLIC_API_URL:-http://backend:8000}'
+      BACKEND_URL: '${BACKEND_URL:-http://backend:8000}'
+    networks:
+      - public_net
+      - backend_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.marketing.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.marketing.priority=1"
+      - "traefik.http.routers.marketing.entrypoints=web"
+      - "traefik.http.services.marketing.loadbalancer.server.port=3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required}
+    networks:
+      - public_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    restart: unless-stopped
+
+networks:
+  public_net:
+  backend_net:
+    internal: true
+  db_net:
+    internal: true
+
+volumes:
+  pgdata:
+  chdata:

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tokenshield.fullname" . }}-config
+data:
+  DATABASE_URL: "postgresql+asyncpg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@{{ include "tokenshield.fullname" . }}-postgres/{{ .Values.postgres.database }}"
+  REDIS_URL: "redis://:{{ .Values.redis.password }}@{{ include "tokenshield.fullname" . }}-redis:6379/0"
+  CLICKHOUSE_URL: "clickhouse://{{ .Values.clickhouse.user }}:{{ .Values.clickhouse.password }}@{{ include "tokenshield.fullname" . }}-clickhouse:9000/default"
+  AUTH0_ISSUER: "{{ .Values.auth0.issuer }}"
+  NEXT_PUBLIC_API_URL: "http://api.tokenshield.local"

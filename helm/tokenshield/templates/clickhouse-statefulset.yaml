@@ -1,0 +1,32 @@
+{{- if .Values.clickhouse.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "tokenshield.fullname" . }}-clickhouse
+  labels:
+    app.kubernetes.io/name: clickhouse
+spec:
+  serviceName: {{ include "tokenshield.fullname" . }}-clickhouse
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:23.8
+          ports:
+            - containerPort: 8123
+              name: http
+            - containerPort: 9000
+              name: tcp
+          env:
+            - name: CLICKHOUSE_USER
+              value: {{ .Values.clickhouse.user }}
+            - name: CLICKHOUSE_PASSWORD
+              value: {{ .Values.clickhouse.password }}
+{{- end }}

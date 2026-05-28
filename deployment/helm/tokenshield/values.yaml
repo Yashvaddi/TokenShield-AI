@@ -1,0 +1,34 @@
+
+backend:
+  replicaCount: 2
+  image:
+    repository: tokenshield/backend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: tokenshield/frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+
+postgres:
+  enabled: true
+  password: "securepassword"
+  
+redis:
+  enabled: true

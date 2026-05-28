@@ -1,0 +1,40 @@
+patterns:
+  - category: "System prompt extraction"
+    regex: "(?i)(reveal|print|show)\\s+(your\\s+)?(system\\s+)?prompt"
+    weight: 35
+  - category: "Instruction override"
+    regex: "(?i)ignore\\s+all\\s+previous\\s+instructions"
+    weight: 30
+  - category: "Role jailbreak"
+    regex: "(?i)you\\s+are\\s+now\\s+(DAN|unrestricted|acting\\s+as|evil|root|jailbroken)"
+    weight: 40
+  - category: "Developer mode"
+    regex: "(?i)(enter|enable)\\s+(developer|debug)\\s+mode|jailbreak"
+    weight: 25
+  - category: "Data exfiltration"
+    regex: "(?i)(list|print)\\s+all\\s+(users|database|passwords)"
+    weight: 40
+  - category: "Encoding tricks"
+    regex: "(?i)(base64|hex)\\s+(decode|encode)"
+    weight: 35
+  - category: "Recursive self-reference"
+    regex: "(?i)call\\s+yourself\\s+(again|recursively)"
+    weight: 20
+  - category: "Authority impersonation"
+    regex: "(?i)as\\s+(anthropic|your\\s+creator)"
+    weight: 30
+  - category: "Restriction override"
+    regex: "(?i)act\\s+as\\s+if\\s+you\\s+have\\s+no\\s+restrictions"
+    weight: 35
+  - category: "Rule dump"
+    regex: "(?i)print\\s+your\\s+(instructions|prompt|rules)"
+    weight: 30
+  - category: "Prompt stuffing"
+    regex: "(?i)bypassing\\s+limits"
+    weight: 20
+  - category: "Safety bypass"
+    regex: "(?i)disregard\\s+safety"
+    weight: 30
+  - category: "System override"
+    regex: "(?i)system\\s+override"
+    weight: 25

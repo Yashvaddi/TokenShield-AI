@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tokenshield.fullname" . }}-backend
+  labels:
+    app: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://postgres:{{ .Values.postgres.password }}@{{ include "tokenshield.fullname" . }}-postgres/tokenshield"
+            - name: REDIS_URL
+              value: "redis://{{ include "tokenshield.fullname" . }}-redis:6379"
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
