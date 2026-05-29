@@ -9,13 +9,14 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+  IMAGE_PREFIX: ${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}
 
 jobs:
   test-and-lint:
     name: Test & Lint
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -23,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ vars.PYTHON_VERSION }}
 
       - name: Install Backend Dependencies
         run: |
@@ -33,16 +34,17 @@ jobs:
           pip install pytest httpx
 
       - name: Run Backend Tests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
         run: |
           cd backend
-          # Skip running tests locally since they require redis/postgres to be up
-          # In a real environment, you'd use service containers in GH actions
-          echo "pytest tests/ -v"
+          pytest tests/ -v
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ vars.NODE_VERSION }}
 
       - name: Lint Frontend
         run: |
@@ -54,27 +56,29 @@ jobs:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
     needs: test-and-lint
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     permissions:
       contents: read
       packages: write
-      
+
     strategy:
       matrix:
         service: [backend, frontend, marketing]
-        
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
+      - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -83,7 +87,7 @@ jobs:
             type=sha,format=long
             type=raw,value=latest
 
-      - name: Build and push Docker image
+      - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
@@ -95,8 +99,11 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     needs: build-and-push
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
+    environment: production
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -104,7 +111,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: 'v3.12.0'
+          version: ${{ vars.HELM_VERSION }}
 
       - name: Configure Kubernetes credentials
         uses: azure/k8s-set-context@v3
@@ -114,8 +121,8 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install tokenshield ./helm/tokenshield \
-            --namespace production \
+          helm upgrade --install ${{ vars.HELM_RELEASE }} ./helm/tokenshield \
+            --namespace ${{ vars.K8S_NAMESPACE }} \
             --create-namespace \
             --set backend.image.tag=${{ github.sha }} \
             --set frontend.image.tag=${{ github.sha }} \
