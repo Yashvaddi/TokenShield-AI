@@ -4,8 +4,8 @@ import { Building2, Plus, Users, Shield, MoreVertical, Search, Settings, UserPlu
 import { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useCreateProjectMutation, useCreateUserMutation, useGetUsersQuery, useGetProjectsQuery, useDeleteUserMutation, useUpdateUserMutation, useDeleteProjectMutation } from '@/store/apiSlice';
-import { Trash2 } from 'lucide-react';
+import { useCreateProjectMutation, useCreateUserMutation, useGetUsersQuery, useGetProjectsQuery, useDeleteUserMutation, useUpdateUserMutation, useDeleteProjectMutation, useUpdateProjectMutation } from '@/store/apiSlice';
+import { Trash2, Edit2 } from 'lucide-react';
 
 const workspaceSchema = Yup.object({
   name: Yup.string().required('Workspace name is required').min(3, 'Must be at least 3 characters'),
