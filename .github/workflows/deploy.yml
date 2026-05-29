@@ -18,17 +18,6 @@ jobs:
     name: Test & Lint
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -46,18 +35,18 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest httpx aiosqlite
+          pip install pytest httpx aiosqlite fakeredis[aioredis]
 
       - name: Run Backend Tests
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_URL: redis://localhost:6379
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           cd backend
 
           if [ -d "tests" ]; then
-            pytest tests/ -v
+            python -m pytest tests/ -v --asyncio-mode=auto
           else
             echo "No tests directory found. Skipping tests."
           fi
