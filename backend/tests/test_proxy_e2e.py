@@ -23,13 +23,25 @@ def get_auth_headers():
 @pytest_asyncio.fixture(autouse=True)
 async def fake_redis(monkeypatch):
     """Patch redis_client with a fresh in-memory fakeredis for every test.
-    Avoids real network connections and event-loop binding issues in strict mode."""
+
+    IMPORTANT: `from app.proxy.tracker import redis_client` binds the name at
+    import time in each module, so patching `tracker.redis_client` alone has no
+    effect on already-imported modules.  We must patch the name in every module
+    that imported it directly.
+    """
     import app.proxy.tracker as tracker
+    import app.detectors.loop_detector as loop_detector
+    import app.detectors.key_leak_detector as key_leak_detector
+
     server = fakeredis.FakeServer()
-    client = fakeredis.FakeRedis(server=server, decode_responses=True)
-    monkeypatch.setattr(tracker, "redis_client", client)
-    yield client
-    await client.aclose()
+    fake = fakeredis.FakeRedis(server=server, decode_responses=True)
+
+    monkeypatch.setattr(tracker, "redis_client", fake)
+    monkeypatch.setattr(loop_detector, "redis_client", fake)
+    monkeypatch.setattr(key_leak_detector, "redis_client", fake)
+
+    yield fake
+    await fake.aclose()
 
 @pytest.mark.asyncio
 async def test_injection_rejection():
