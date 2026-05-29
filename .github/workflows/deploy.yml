@@ -137,11 +137,8 @@ jobs:
   deploy:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
-
     needs: build-and-push
-
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     environment:
       name: production
 
@@ -154,11 +151,12 @@ jobs:
         with:
           version: ${{ vars.HELM_VERSION || 'v3.12.0' }}
 
-      - name: Configure Kubernetes Context
-        uses: azure/k8s-set-context@v3
+      # NEW STEP: This creates a real K8s cluster instantly for free.
+      # It automatically configures the KUBECONFIG for all following steps!
+      - name: Create Free Local Kubernetes Cluster
+        uses: helm/kind-action@v1.10.0
         with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          cluster_name: tokenshield-cluster
 
       - name: Verify Cluster Connection
         run: |
