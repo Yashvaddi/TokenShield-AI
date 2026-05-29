@@ -1,6 +1,8 @@
 import pytest
+import pytest_asyncio
 import httpx
 from fastapi.testclient import TestClient
+import fakeredis.aioredis as fakeredis
 
 # Create a mock app or import the real one if accessible
 import sys
@@ -17,6 +19,17 @@ def get_auth_headers():
     # In a real test suite, you would mock or create a test user/token
     # For now, we mock the dependency or pass a test token
     return {"Authorization": "Bearer test_admin_token"}
+
+@pytest_asyncio.fixture(autouse=True)
+async def fake_redis(monkeypatch):
+    """Patch redis_client with a fresh in-memory fakeredis for every test.
+    Avoids real network connections and event-loop binding issues in strict mode."""
+    import app.proxy.tracker as tracker
+    server = fakeredis.FakeServer()
+    client = fakeredis.FakeRedis(server=server, decode_responses=True)
+    monkeypatch.setattr(tracker, "redis_client", client)
+    yield client
+    await client.aclose()
 
 @pytest.mark.asyncio
 async def test_injection_rejection():
@@ -60,13 +73,13 @@ async def test_loop_circuit_breaker():
     from app.detectors.loop_detector import detect_loop
     user_id = "test_user_loop"
     prompt = "What is the weather?"
-    
-    # Send 10 identical prompts
+
+    # Send 10 identical prompts — each increments counter, none should block yet
     for i in range(10):
         result = await detect_loop(user_id, prompt)
-        assert result["blocked"] is False
-        
-    # 11th should block
+        assert result["blocked"] is False, f"Expected not blocked on call {i+1}"
+
+    # 11th identical prompt — counter now exceeds MAX_PROMPT_COUNT (10) → block
     result_11 = await detect_loop(user_id, prompt)
     assert result_11["blocked"] is True
     assert result_11["reason"] == "loop_detected"
@@ -78,13 +91,13 @@ async def test_recursive_agent_breaker():
     user_id = "test_user_agent"
     prompt = "Use the tool to fetch data."
     session_id = "test_session_123"
-    
-    # Simulate 12 deep chain
+
+    # Simulate 12 calls in the agent chain — depth should not exceed MAX_AGENT_DEPTH (12)
     for i in range(12):
         result = await detect_loop(user_id, f"{prompt} step {i}", session_id, f"req_id_{i}")
-        assert result["blocked"] is False
-        
-    # 13th call in chain should block
+        assert result["blocked"] is False, f"Expected not blocked at chain depth {i+1}"
+
+    # 13th call in chain — depth now exceeds MAX_AGENT_DEPTH → block
     result_13 = await detect_loop(user_id, prompt, session_id, "req_id_13")
     assert result_13["blocked"] is True
     assert result_13["reason"] == "recursive_depth_exceeded"
