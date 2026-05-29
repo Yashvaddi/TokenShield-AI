@@ -81,7 +81,7 @@ async def test_recursive_agent_breaker():
     
     # Simulate 12 deep chain
     for i in range(12):
-        result = await detect_loop(user_id, prompt, session_id, f"req_id_{i}")
+        result = await detect_loop(user_id, f"{prompt} step {i}", session_id, f"req_id_{i}")
         assert result["blocked"] is False
         
     # 13th call in chain should block
